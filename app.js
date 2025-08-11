@@ -1,6 +1,5 @@
 // package.json에 "type": "module" 설정이 필요합니다.
 // 메인 서버 파일 (ES6 import/export 방식)
-
 import dotenv from 'dotenv';
 import express from 'express';
 import http from 'http';

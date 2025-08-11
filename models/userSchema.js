@@ -11,8 +11,9 @@ const userSchema = new Schema({
   picturePath: { type: String, default: "/default/" },
   token: String,
   provider: { type: String, default: "local" },
-  createdAt: { type: String, default: getCurrentTime },
+  createdAt: { type: String, default: getCurrentTime }, //현재시간 
   updatedAt: { type: String, default: getCurrentTime },
+  //user: { type: ObjectId, ref: "User", require: true} 입력된 아이디가 없으니 주석처리
 });
 
 export default model("User", userSchema, "user")
