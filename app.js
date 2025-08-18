@@ -1,56 +1,92 @@
+<<<<<<< HEAD
 // package.json에 "type": "module" 설정이 필요합니다.
 // 메인 서버 파일 (ES6 import/export 방식)
 import dotenv from 'dotenv';
 import express from 'express';
+=======
+
+// bodyParser는 Express 4.16+에서 내장되어 있음
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+
+>>>>>>> master
 import http from 'http';
+import passport from "passport";
+import path from 'path';
 import { Server } from 'socket.io';
-import connectDB from './config/db.js';
-import errorHandler from './middlewares/errorHandler.js';
-import authRoutes from './routes/authRoutes.js';
-import calendarRoutes from './routes/calendarRoutes.js';
-import chatRoutes from './routes/chatRoutes.js';
-import communityRoutes from './routes/communityRoutes.js';
-import userRoutes from './routes/userRoutes.js';
+import { fileURLToPath } from "url";
+import initializePassport from "./auth/auth.js";
+import connect from "./connect/connect.js";
+import authRouter from "./routes/auth/authRouter.js";
+import rootRouter from "./routes/rootRouter.js";
+import socketRouter from "./routes/socket/socketRouter.js";
 
-// 환경변수(.env) 사용을 위한 dotenv 설정
-dotenv.config();
+// 1. db : DBMS 연결 설정
+// 2. app.js(server.js): 서버 설정, 미들웨어 설정, 라우터 설정
+// 3. 스키마 정의
+// 4. controller 비즈니스 로직 작성
+// 5. router : 요청한 경로에 맞는 controller를 실행하도록 작성
+// 6. utils : 추가적인 유틸함수 또는 중복되는 코드를 하나로 합치는 코드 작성
+// 2 ~ 6번까지 반복
 
-// DB 연결
-connectDB();
+connect()
 
-// Express 앱 생성
-const app = express();
+const app = express()
+const port = 8000;
 
-// JSON 파싱 미들웨어
-app.use(express.json());
+// dotenv 사용
+dotenv.config()
 
-// 라우터 연결
-app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/community', communityRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/calendar', calendarRoutes);
-
-// 에러 핸들링 미들웨어 (항상 마지막에 위치)
-app.use(errorHandler);
-
-// 서버 실행
-const PORT = process.env.PORT || 8000;
-
-// 웹소켓 서버랑 통합
+// 웹소켓과 express 통합
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*", methods: ['GET', 'POST', 'PUT', 'DELETE']}
 })
 
-// chatRoutes(io)
 
-server.listen(PORT, () => {
-  console.log(`${PORT}번 포트에서 서버 실행 중`);
-  console.log('MONGO_URI:', process.env.MONGO_URI);
+// cors 설정
+// app.use()는 미들웨어로서,
+// 어떤 요청이든 지정된 로직보다 먼저 작업한다. 즉 전처리이다.
+app.use(cors({
+  origin : "http://localhost:3000",
+  method : ['GET', 'POST', 'PUT', 'DELETE'],
+  // credentials : true
+}))
+
+app.use(express.json())
+
+// extended true, qs모듈을 사용하여 쿼리스트링 인식
+app.use(express.urlencoded({extended : false}))
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  next()
+})
+
+// passport 설정
+app.use(passport.initialize())
+initializePassport()
+
+// 이미지 정적 서빙
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename);
+
+// 폴더를 정적으로 서빙 (URL: "/uploads/...")
+app.use("/uploads", express.static(path.join(__dirname, 'uploads')))
+
+app.use("/auth", authRouter);
+
+app.use("/", rootRouter);
+
+
+// app.listen(port, () => {
+//   console.log("Express Server Start!")
+// })
+
+socketRouter(io)
+
+server.listen(port, () => {
   console.log(`웹 소켓, express 통합 실행!`)
 })
 
-app.get('/', (req, res) => {
-  res.send('Mungpick 백엔드 서버에 오신 것을 환영합니다! 🎉');
-});
+
